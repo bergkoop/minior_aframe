@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Piratenstrand</title>
+    <script src="https://aframe.io/releases/1.8.0/aframe.min.js"></script>
+    <style>
+      /* De knop ligt over de 3D-scene heen (z-index), onderaan in het midden. */
+      #vuurknop {
+        position: fixed;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        padding: 14px 30px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 19px;
+        letter-spacing: 0.06em;
+        color: #FFE9A8;
+        background: #6B4423;
+        border: 3px solid #C8A24A;
+        border-radius: 6px;
+        box-shadow: 0 5px 0 #3E2614, 0 8px 14px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+      }
+
+      #vuurknop:hover {
+        background: #7D5129;
+      }
+
+      /* ingedrukt: de knop zakt in, de schaduw eronder wordt kleiner */
+      #vuurknop:active {
+        transform: translateX(-50%) translateY(4px);
+        box-shadow: 0 1px 0 #3E2614, 0 3px 8px rgba(0, 0, 0, 0.35);
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      EINDOPDRACHT - PIRATENSTRAND (A-Frame)
+
+      #  element              wat het doet                                        eis
+      1  strand               zandvlak waar je op loopt, vangt de schaduwen op    decor
+      2  zee                  donkerder blauw dan de lucht -> horizon zichtbaar   decor
+      3  lucht                a-sky om de hele scene heen                         decor
+      4  zon + licht          warm licht van een kant, bepaalt de schaduwen       lichtinval
+      5  KANON                samengesteld 3d-object, klikbaar                    3D-OBJECT + INTERACTIE
+      6  kanonkogel           vliegt bij de klik over de zee en komt terug        ANIMATIE (bij klik)
+      7  palmboom + vlag      de piratenvlag wappert doorlopend in de wind        ANIMATIE (doorlopend)
+      8  vaten                decor op het strand, werpen schaduw                 decor
+      9  piratenschip         dobbert op zee en vaart langzaam zijwaarts          decor + animatie
+     10  geluid               golven als loop + kanonknal bij de klik             GELUID
+
+      De audiobestanden staan in de map assets/ (zie assets/README.txt).
+    -->
+    <a-scene shadow="type: pcf">
+      <!-- timeout omhoog: de twee .wav-bestanden zijn samen bijna 4 MB en
+           halen de standaard 3 seconden niet altijd -->
+      <a-assets timeout="10000">
+        <audio
+          id="golven"
+          src="assets/799248__garandm1__seashore-wave-1.wav"
+          preload="auto"
+          loop
+        ></audio>
+        <audio id="kanonknal" src="assets/canonball.wav" preload="auto"></audio>
+      </a-assets>
+
+      <!-- 3. lucht -->
+      <a-sky color="#6FC4E8"></a-sky>
+
+      <!-- 4. zon + lichtinval (gouden uur) -->
+      <!-- de zonbol en het richtinglicht liggen op dezelfde lijn vanaf de
+           oorsprong, zodat de schaduwen echt van de zon weg vallen -->
+      <a-sphere
+        position="-50 34 -55"
+        radius="4"
+        material="shader: flat; color: #FFE9A8"
+      ></a-sphere>
+      <a-entity
+        light="type: directional; color: #FFE0B0; intensity: 1.5; castShadow: true;
+               shadowCameraLeft: -40; shadowCameraRight: 40;
+               shadowCameraTop: 40; shadowCameraBottom: -40;
+               shadowMapWidth: 2048; shadowMapHeight: 2048"
+        position="-15 10.2 -16.5"
+      ></a-entity>
+      <a-entity light="type: ambient; color: #BBD4E8; intensity: 0.85"></a-entity>
+
+      <!-- 1. strand -->
+      <!-- roughness: 1 en metalness: 0 -> mat zand, anders krijg je een
+           glimmende lichtvlek waar de zon in het vlak weerkaatst -->
+      <a-plane
+        material="color: #F5DEA0; roughness: 1; metalness: 0"
+        width="200"
+        height="30"
+        rotation="-90 0 0"
+        position="0 0 0"
+        shadow="receive: true"
+      ></a-plane>
+
+      <!-- 2. zee: donkerder blauw dan de lucht, achter het strand -->
+      <a-plane
+        material="color: #01579B; roughness: 0.75; metalness: 0"
+        width="200"
+        height="60"
+        rotation="-90 0 0"
+        position="0 0.01 -45"
+      ></a-plane>
+
+      <!-- 10. golven als sfeergeluid (loopt continu) -->
+      <!-- positional: false -> het geluid is overal even hard, want het hoort
+           bij de hele scene en niet bij een plek erin. De kanonknal is wel
+           positional: die komt duidelijk uit de richting van het kanon. -->
+      <a-entity
+        sound="src: #golven; autoplay: true; loop: true; volume: 0.4;
+               positional: false"
+      ></a-entity>
+
+      <!-- 5. KANON: klik => knal + terugschok. 6. de kogel vliegt weg -->
+      <a-entity
+        id="kanon"
+        class="clickable"
+        position="0 0 -4"
+        sound="src: #kanonknal; on: vuur; volume: 1"
+        animation="property: position; to: 0 0 -3.5; dur: 110; dir: alternate;
+                   loop: 2; easing: easeOutQuad; startEvents: vuur"
+      >
+        <!-- loop -->
+        <a-cylinder
+          color="#3A3A3A"
+          radius="0.22"
+          height="1.8"
+          rotation="105 0 0"
+          position="0 0.55 -0.3"
+          shadow="cast: true"
+        ></a-cylinder>
+        <!-- onderstel -->
+        <a-box
+          color="#6B4423"
+          width="0.8"
+          height="0.4"
+          depth="1.2"
+          position="0 0.25 0.2"
+          shadow="cast: true"
+        ></a-box>
+        <!-- wielen -->
+        <a-cylinder
+          color="#4E3218"
+          radius="0.3"
+          height="0.12"
+          rotation="0 0 90"
+          position="0.42 0.25 0.2"
+          shadow="cast: true"
+        ></a-cylinder>
+        <a-cylinder
+          color="#4E3218"
+          radius="0.3"
+          height="0.12"
+          rotation="0 0 90"
+          position="-0.42 0.25 0.2"
+          shadow="cast: true"
+        ></a-cylinder>
+      </a-entity>
+
+      <!-- 6. kanonkogel: ligt bij de loop, vliegt op het event 'vuur' naar de
+           zee en springt daarna terug naar de loop -->
+      <a-sphere
+        id="kogel"
+        color="#1C1C1C"
+        radius="0.14"
+        position="0 0.78 -5.2"
+        animation__fly="property: position; to: 0 2.4 -34; dur: 1100;
+                        easing: easeOutQuad; startEvents: vuur"
+        animation__reset="property: position; to: 0 0.78 -5.2; dur: 1;
+                          startEvents: animationcomplete__fly"
+      ></a-sphere>
+
+      <!-- 7. palmboom met wapperende piratenvlag -->
+      <a-entity position="-4.5 0 -7">
+        <!-- stam -->
+        <a-cylinder
+          color="#7B5230"
+          radius="0.18"
+          height="4"
+          position="0 2 0"
+          rotation="0 0 -5"
+          shadow="cast: true"
+        ></a-cylinder>
+
+        <!-- bladeren: 6 platte cones rondom de top -->
+        <a-entity position="-0.17 3.9 0">
+          <a-entity rotation="0 0 0">
+            <a-cone color="#2E7D32" radius-bottom="0.12" radius-top="0.02"
+                    height="1.7" position="0.8 -0.15 0" rotation="0 0 -105"
+                    scale="1 1 0.35" shadow="cast: true"></a-cone>
+          </a-entity>
+          <a-entity rotation="0 60 0">
+            <a-cone color="#388E3C" radius-bottom="0.12" radius-top="0.02"
+                    height="1.7" position="0.8 -0.15 0" rotation="0 0 -105"
+                    scale="1 1 0.35" shadow="cast: true"></a-cone>
+          </a-entity>
+          <a-entity rotation="0 120 0">
+            <a-cone color="#2E7D32" radius-bottom="0.12" radius-top="0.02"
+                    height="1.7" position="0.8 -0.15 0" rotation="0 0 -105"
+                    scale="1 1 0.35" shadow="cast: true"></a-cone>
+          </a-entity>
+          <a-entity rotation="0 180 0">
+            <a-cone color="#388E3C" radius-bottom="0.12" radius-top="0.02"
+                    height="1.7" position="0.8 -0.15 0" rotation="0 0 -105"
+                    scale="1 1 0.35" shadow="cast: true"></a-cone>
+          </a-entity>
+          <a-entity rotation="0 240 0">
+            <a-cone color="#2E7D32" radius-bottom="0.12" radius-top="0.02"
+                    height="1.7" position="0.8 -0.15 0" rotation="0 0 -105"
+                    scale="1 1 0.35" shadow="cast: true"></a-cone>
+          </a-entity>
+          <a-entity rotation="0 300 0">
+            <a-cone color="#388E3C" radius-bottom="0.12" radius-top="0.02"
+                    height="1.7" position="0.8 -0.15 0" rotation="0 0 -105"
+                    scale="1 1 0.35" shadow="cast: true"></a-cone>
+          </a-entity>
+        </a-entity>
+
+        <!-- de vlag draait doorlopend heen en weer om de stam: de wind -->
+        <a-entity
+          id="vlag"
+          position="-0.08 2.9 0"
+          animation="property: rotation; from: 0 -14 0; to: 0 14 0; dur: 1300;
+                     dir: alternate; loop: true; easing: easeInOutSine"
+        >
+          <a-plane
+            color="#111111"
+            width="0.9"
+            height="0.55"
+            position="0.5 0 0"
+            material="side: double"
+          ></a-plane>
+          <!-- doodskop -->
+          <a-sphere color="#F2F2F2" radius="0.11" position="0.5 0.05 0.02"></a-sphere>
+          <a-sphere color="#111111" radius="0.025" position="0.46 0.08 0.11"></a-sphere>
+          <a-sphere color="#111111" radius="0.025" position="0.54 0.08 0.11"></a-sphere>
+        </a-entity>
+      </a-entity>
+
+      <!-- 8. houten vaten -->
+      <a-cylinder color="#8D6E40" radius="0.35" height="0.8"
+                  position="2.6 0.4 -4.2" shadow="cast: true"></a-cylinder>
+      <a-cylinder color="#7A5E35" radius="0.35" height="0.8"
+                  position="3.4 0.4 -5.4" shadow="cast: true"></a-cylinder>
+      <a-cylinder color="#8D6E40" radius="0.35" height="0.35"
+                  rotation="90 0 20" position="2.0 0.35 -6.3"
+                  shadow="cast: true"></a-cylinder>
+
+      <!-- 9. piratenschip op zee: dobbert en vaart langzaam zijwaarts -->
+      <a-entity
+        id="schip"
+        position="-14 0.6 -40"
+        animation="property: position; to: 14 0.6 -40; dur: 90000;
+                   dir: alternate; loop: true; easing: linear"
+      >
+        <a-entity
+          animation="property: position; from: 0 -0.15 0; to: 0 0.25 0; dur: 2600;
+                     dir: alternate; loop: true; easing: easeInOutSine"
+          animation__wieg="property: rotation; from: 0 0 -3; to: 0 0 3; dur: 3400;
+                           dir: alternate; loop: true; easing: easeInOutSine"
+        >
+          <a-box color="#4A2F18" width="3.4" height="0.9" depth="1.2"></a-box>
+          <a-cylinder color="#6B4423" radius="0.09" height="3.4"
+                      position="0 2.1 0"></a-cylinder>
+          <a-plane color="#EDE3CC" width="1.8" height="2.2" position="0 2.1 0.02"
+                   material="side: double"></a-plane>
+          <a-plane color="#111111" width="0.5" height="0.32" position="0 3.6 0.02"
+                   material="side: double"></a-plane>
+        </a-entity>
+      </a-entity>
+
+      <!-- camera: rondlopen met WASD, rondkijken met de muis -->
+      <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
+
+      <!-- muiscursor: deze MOET op een eigen entity staan. Zet je cursor en
+           raycaster op <a-scene> zelf, dan worden ze niet geladen en gebeurt
+           er niets als je klikt. -->
+      <a-entity
+        id="muis"
+        cursor="rayOrigin: mouse"
+        raycaster="objects: .clickable; far: 100"
+      ></a-entity>
+    </a-scene>
+
+    <!-- knop om het kanon af te vuren, naast klikken op het kanon zelf -->
+    <button id="vuurknop" type="button">Vuur het kanon af</button>
+
+    <script>
+      // Eén functie die het schot afvuurt. Het kanon (knal + terugschok) en de
+      // kogel (vliegt weg) luisteren allebei naar het event 'vuur'.
+      var kanon = document.querySelector('#kanon');
+      var kogel = document.querySelector('#kogel');
+
+      function vuur() {
+        kanon.emit('vuur');
+        kogel.emit('vuur');
+      }
+
+      // twee manieren om te vuren: de knop, of klikken op het kanon in de 3D-scene
+      document.querySelector('#vuurknop').addEventListener('click', vuur);
+      kanon.addEventListener('click', vuur);
+    </script>
+  </body>
+</html>
